@@ -1,0 +1,172 @@
+Service:
+  DeployType: ros
+  DeployMetadata:
+    SupplierDeployMetadata:
+      ArtifactRelation:
+        centos_7_9_x64_20G_alibase_20240403.vhd:
+          ArtifactId: ${Artifact.EcsImage.ArtifactId}
+          ArtifactVersion: draft
+      SupplierTemplateConfigs:
+        - Name: 单机版
+          Url: ros_templates/template.yaml
+          PredefinedParameters: []
+          AllowedRegions:
+            - ap-southeast-1
+    TemplateConfigs:
+      - Name: 单机版
+        Url: ros_templates/template.yaml
+        PredefinedParameters: []
+        AllowedRegions:
+          - ap-southeast-1
+    NetworkMetadata:
+      EnablePrivateVpcConnection: false
+      EnableReversePrivateVpcConnection: false
+    ServiceInstanceNameRule:
+      Prefix: Vespa
+      UseDefaultValue: false
+  OperationMetadata:
+    SupportBackup: false
+    PrometheusConfigMap:
+      单机版:
+        EnablePrometheus: false
+  ServiceType: private
+  ServiceInfo:
+    Locale: zh-CN
+    ShortDescription: "Vespa 是一个开源、大规模、实时 AI/搜索与推荐引擎。它专为 低延迟、高吞吐、复杂排序和向量检索 场景设计，广泛应用于搜索、推荐、广告、语义匹配等场景。"
+    Image: resources/icons/service_logo.png
+    Name: Vespa社区版
+  ShareType: Public
+  ApprovalType: Manual
+Artifact:
+  EcsImage:
+    ArtifactType: EcsImage
+    ArtifactName: Vespa
+    Description: Vespa
+    SupportRegionIds:
+        - ap-southeast-1
+    ArtifactBuildProperty:
+      CodeRepo:
+        Platform: github
+        Owner: LYH-RAIN
+        RepoName: aliyun-computenest/quickstart-vespa
+        Branch: main
+      RegionId: ap-southeast-1
+      CommandType: RunShellScript
+      CommandContent: |-
+        #!/bin/bash
+        # 升级基础组件：
+
+        # --- 1. 创建项目目录 ---
+        echo "📁 创建目录结构..."
+        if ! mkdir -p "$APP_DIR" "$DATA_DIR/var" "$DATA_DIR/logs"; then
+          echo "❌ 无法创建目录，请检查当前路径是否有写权限。"
+          exit 1
+        fi
+
+        # 验证目录是否存在
+        if [ ! -d "$APP_DIR" ]; then
+          echo "❌ 目录 $APP_DIR 创建失败！"
+          exit 1
+        fi
+
+        # 安装Docker
+        yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+        yum makecache
+        yum install -y curl git docker-ce
+        sudo systemctl enable --now docker.socket
+        sudo systemctl enable --now docker.service
+
+        # --- 2. 生成 services.xml ---
+        echo "📝 生成最小应用配置..."
+        cat > "$APP_DIR/services.xml" <<EOF
+        <?xml version="1.0" encoding="utf-8" ?>
+        <services version="1.0">
+          <container id="default" version="1.0">
+            <search />
+            <document-api />
+            <nodes>
+              <node hostalias="node1" />
+            </nodes>
+          </container>
+        </services>
+        EOF
+
+        # 验证文件是否写入
+        if [ ! -f "$APP_DIR/services.xml" ]; then
+          echo "❌ 无法写入 $APP_DIR/services.xml，请检查磁盘空间或权限。"
+          exit 1
+        fi
+
+        # --- 3. 创建 init 脚本 ---
+        echo "⚙️  创建初始化脚本..."
+        cat > "$PROJECT_DIR/init-vespa.sh" <<'EOF'
+        #!/bin/bash
+        set -e
+        echo "⏳ Waiting for Vespa Config Server to be ready..."
+        timeout=60
+        while ! curl -s http://vespa:19071/application/v2/tenant/default > /dev/null; do
+          if ((timeout <= 0)); then
+            echo "❌ Config server failed to start in time."
+            exit 1
+          fi
+          echo "   Config server not ready... (waiting ${timeout}s)"
+          sleep 5
+          ((timeout -= 5))
+        done
+        echo "✅ Config server is ready. Deploying application..."
+        rm -rf /tmp/app
+        cp -r /app /tmp/app
+        /opt/vespa/bin/vespa-deploy prepare /tmp/app
+        /opt/vespa/bin/vespa-deploy activate
+        echo "🚀 Application deployed successfully!"
+        exit 0
+        EOF
+
+        chmod +x "$PROJECT_DIR/init-vespa.sh"
+
+        # --- 4. 创建 docker-compose.yml ---
+        echo "🐳 生成 docker-compose.yml..."
+        cat > "$PROJECT_DIR/docker-compose.yml" <<EOF
+        version: '3.8'
+
+        services:
+          vespa:
+            image: vespaengine/vespa:latest
+            container_name: vespa
+            hostname: vespa-container
+            ports:
+              - "8080:8080"
+              - "19071:19071"
+            volumes:
+              - ./vespa_var:/opt/vespa/var
+              - ./vespa_logs:/opt/vespa/logs
+            environment:
+              VESPA_VAR_STORAGE: /opt/vespa/var
+              VESPA_LOG_STORAGE: /opt/vespa/logs
+              VESPA_CONFIGSERVERS: vespa-container
+            restart: unless-stopped
+
+        EOF
+
+        # --- 5. 启动服务 ---
+        cd "$PROJECT_DIR"
+        echo "🚀 启动 Docker Compose..."
+        mkdir -p vespa_var vespa_logs
+
+        # 授权（开发环境用 chmod 更简单）
+        chmod -R a+w vespa_var vespa_logs
+
+        if ! docker compose up -d; then
+          echo "❌ Docker Compose 启动失败，请确保已安装 docker 和 docker-compose。"
+          exit 1
+        fi
+
+        # --- 6. 验证 ---
+        echo "🔍 等待服务就绪（约30秒）..."
+        until curl -s http://localhost:19071/application/v2/tenant/default; do sleep 5; done
+        docker cp application/. vespa:/tmp/app
+        docker exec vespa sh -c "
+          /opt/vespa/bin/vespa-deploy prepare /tmp/app &&
+          /opt/vespa/bin/vespa-deploy activate
+        "
+        echo "✅ Done!"
