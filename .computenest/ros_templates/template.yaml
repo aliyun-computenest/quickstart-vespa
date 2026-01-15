@@ -288,12 +288,12 @@ Resources:
           SourceCidrIp: 0.0.0.0/0
           IpProtocol: tcp
           NicType: internet
-        - PortRange: :19071/:19071
+        - PortRange: 19071/19071
           Priority: 1
           SourceCidrIp: 0.0.0.0/0
           IpProtocol: tcp
           NicType: internet
-        - PortRange: :8080/:8080
+        - PortRange: 8080/8080
           Priority: 1
           SourceCidrIp: 0.0.0.0/0
           IpProtocol: tcp
@@ -383,21 +383,22 @@ Resources:
 
         cd /root/vespa-deploy
         docker compose down
-
+        cp -r ./vespa_logs /mnt/data/
+        cp -r ./vespa_var /mnt/data/
         COMPOSE_FILE="/root/vespa-deploy/docker-compose.yml"
         sed -i -E 's|\./|/mnt/data/|g' "$COMPOSE_FILE"
-        chmod -R 777 /mnt/data/
+        chmod -R 777 /mnt/data/*
 
         docker compose up -d
 
 Outputs:
-  Supabase Addresses:
+  Vespa Addresses:
     Description:
-      zh-cn: Supabase 地址
-      en: Supabase Addresses
+      zh-cn: Vespa 地址
+      en: Vespa Addresses
     Value:
       Fn::Sub:
-        - 'http://${ServerAddress}::19071'
+        - 'http://${ServerAddress}:19071'
         - ServerAddress:
             Fn::If:
               - EnablePublicIpConditions
@@ -411,11 +412,11 @@ Outputs:
                 - Fn::GetAtt:
                   - InstanceGroup
                   - PrivateIps
-  Supabase Private Addresses:
+  Vespa Private Addresses:
     Condition: EnablePublicIpConditions
     Description:
-      zh-cn: Supabase 内网地址
-      en: Supabase Private Addresses
+      zh-cn: Vespa 内网地址
+      en: Vespa Private Addresses
     Value:
       Fn::Sub:
         - 'http://${ServerAddress}:19071'

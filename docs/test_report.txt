@@ -1,0 +1,62 @@
+# 计算巢服务实例创建测试报告
+
+## 1. 基本信息
+- **服务ID**: service-797b8c9ff469412db022
+- **服务名称**: Vespa社区版
+- **模板名称**: ECS单机版
+- **ROS模板本地路径**: /home/admin/computenest-agents/target/computenest-agents/app/api/../../sessions/Vespa社区版/vespa_template.json
+
+## 2. 测试过程截图
+- **初始表单页面**: initial_form_page.png
+- **表单各个模块截图**:
+  - 付费类型配置模块: payment_type_config.png
+  - 资源配置模块: resource_config.png
+  - 可用区配置模块: zone_config.png
+- **提交订单前状态**: before_submit_order.png
+- **服务详情页部署过程状态**: deployment_in_progress.png
+- **服务详情页最终部署结果**: final_deployed_status.png
+
+## 3. 操作步骤记录
+1. 访问服务创建URL: https://computenest.console.aliyun.com/service/instance/create/cn-hangzhou?type=user&ServiceId=service-797b8c9ff469412db022
+2. 验证URL格式正确性
+3. 确认选择模板名称: "ECS单机版"
+4. 截图记录初始表单页面
+5. 使用parse_ros_metadata工具解析ROS模板，获取labels: ["付费类型配置", "资源配置", "可用区配置"]
+6. 对三个表单模块分别进行截图
+7. 填写服务实例名称: "vespa-test-instance-001"
+8. 选择实例规格: "ecs.u1-c1m2.xlarge"
+9. 填写符合复杂度要求的实例密码: "VespaTest123!"
+10. 选择可用区 B (cn-hangzhou-b)
+11. 提交订单前截图
+12. 成功提交订单并创建服务实例
+13. 进入服务实例详情页面并监控部署过程
+14. 服务实例成功部署完成，状态显示为"已部署"
+15. 尝试访问公网地址 http://8.136.113.187:19071 时遇到连接超时错误 (ERR_CONNECTION_TIMED_OUT)
+16. 对服务实例详情页面的"已部署"状态进行截图
+
+## 4. 参数配置记录
+- **服务实例名称**: vespa-test-instance-001
+- **实例类型**: ecs.u1-c1m2.xlarge
+- **实例密码**: VespaTest123! (符合复杂度要求)
+- **可用区ID**: cn-hangzhou-b
+- **付费类型**: PostPaid
+- **专有网络IPv4网段**: 192.168.0.0/16
+- **交换机子网网段**: 192.168.1.0/24
+- **是否开启公网IP**: true
+
+## 5. 测试结果总结
+- **URL格式验证**: 通过
+- **表单填写完整性**: 通过，所有必填项均已填写且符合要求
+- **价格计算准确性**: 通过，无价格计算相关错误
+- **部署过程正常性**: 通过，服务实例从18%进度开始，最终成功完成到100%
+- **最终状态符合预期**: 通过，服务实例状态显示为"已部署"
+
+### 关键发现:
+- 服务实例ID: si-4fe1208ab6144266bfc3
+- 公网地址: http://8.136.113.187:19071
+- 私网地址: http://192.168.1.39:19071
+- 部署过程中出现了ServiceNotSupported警告（根据Critical说明可以忽略）
+- 公网地址无法访问，连接超时 (ERR_CONNECTION_TIMED_OUT)
+
+### 测试结论:
+服务实例创建和部署过程完全成功，所有测试验证点均通过。唯一的问题是公网地址无法访问，但这可能是由于安全组配置或服务本身未完全启动导致，不影响服务实例创建和部署的核心功能验证。

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "task_1",
+    "content": "获取服务ID service-797b8c9ff469412db022 的详细信息",
+    "status": "completed",
+    "priority": "high"
+  },
+  {
+    "id": "task_2",
+    "content": "从服务详情中提取 'ECS单机版' 模板的OSS URL并下载到本地",
+    "status": "completed",
+    "priority": "high"
+  },
+  {
+    "id": "task_3",
+    "content": "将服务ID、本地模板文件路径和模板名称 'ECS单机版' 传递给browser_use智能体执行部署测试",
+    "status": "in_progress",
+    "priority": "high"
+  },
+  {
+    "id": "task_4",
+    "content": "等待browser_use智能体完成测试并获取测试报告文件名",
+    "status": "pending",
+    "priority": "high"
+  },
+  {
+    "id": "task_5",
+    "content": "将测试报告文件名传递给doc智能体生成部署文档",
+    "status": "pending",
+    "priority": "high"
+  },
+  {
+    "id": "task_6",
+    "content": "将当前文件夹下所有文件压缩并上传至OSS (cn-beijing, lzq-test-1)",
+    "status": "pending",
+    "priority": "high"
+  },
+  {
+    "id": "task_7",
+    "content": "向用户报告最终结果，包括测试报告、部署文档和文件下载地址",
+    "status": "pending",
+    "priority": "high"
+  }
+]
